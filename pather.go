@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"strings"
@@ -28,14 +28,20 @@ func getSearchSources() []string {
 func appendSource(element string) string {
 	elementSetBy := element + " set by: "
 	for _, source := range getSearchSources() {
-		b, err := ioutil.ReadFile(source)
+		f, err := os.Open(source)
 		if err != nil {
 			// Allow execution to continue as some files are optional.
 			//panic(err)
 		}
+		defer f.Close()
 
-		if strings.Contains(string(b), element) {
-			return elementSetBy + source
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			if strings.Contains(scanner.Text(), "PATH=") {
+				if strings.Contains(scanner.Text(), element) {
+					return elementSetBy + source
+				}
+			}
 		}
 	}
 	return elementSetBy + "unknown"
