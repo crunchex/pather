@@ -1,24 +1,40 @@
 package main
 
 import (
-	"fmt"
-	"strings"
-	"os"
 	"flag"
+	"fmt"
 	"io/ioutil"
+	"os"
+	"runtime"
+	"strings"
 )
 
-func appendSource(element string) string {
-	sourcesToSearch := []string {"/etc/paths"}
-	for _, source := range sourcesToSearch {
-		    b, err := ioutil.ReadFile(source)
-		    if err != nil {
-		        panic(err)
-		    }
+func getSearchSources() []string {
+	// OS X
+	if runtime.GOOS == "darwin" {
+		return []string{"/etc/paths"}
+	}
 
-		    if strings.Contains(string(b), element) {
-		    	return element + " set by: " + source
-		    }
+	// Ubuntu
+	home := os.Getenv("HOME")
+	bashrc := home + "/.bashrc"
+	bashprofile := home + "/.bash_profile"
+	profile := home + "/.profile"
+	env := "/etc/environment"
+
+	return []string{bashrc, bashprofile, profile, env}
+}
+
+func appendSource(element string) string {
+	for _, source := range getSearchSources() {
+		b, err := ioutil.ReadFile(source)
+		if err != nil {
+			panic(err)
+		}
+
+		if strings.Contains(string(b), element) {
+			return element + " set by: " + source
+		}
 	}
 	return element
 }
