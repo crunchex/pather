@@ -26,7 +26,7 @@ func getSearchSources() []string {
 	return []string{bashrc, bashprofile, profile, env}
 }
 
-func appendSource(element string) string {
+func appendSource(element string, c chan string) {
 	elementSetBy := element + " set by: "
 	for _, source := range getSearchSources() {
 		f, err := os.Open(source)
@@ -40,12 +40,14 @@ func appendSource(element string) string {
 		for i := 1; scanner.Scan(); i++ {
 			if strings.Contains(scanner.Text(), "PATH=") {
 				if strings.Contains(scanner.Text(), element) {
-					return elementSetBy + source + " (line " + strconv.Itoa(i) + ")"
+					c <- elementSetBy + source + " (line " + strconv.Itoa(i) + ")"
+					return
 				}
 			}
 		}
 	}
-	return elementSetBy + "unknown"
+	c <- elementSetBy + "unknown"
+	return
 }
 
 func returnPath(shouldList, detailedList bool) {
@@ -55,9 +57,11 @@ func returnPath(shouldList, detailedList bool) {
 	}
 
 	pathList := strings.Split(os.Getenv("PATH"), ":")
+	c := make(chan string)
 	for _, p := range pathList {
 		if detailedList {
-			p = appendSource(p)
+			go appendSource(p, c)
+			p = <-c
 		}
 
 		fmt.Println(p)
