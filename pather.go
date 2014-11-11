@@ -65,9 +65,16 @@ func returnPath(shouldList, detailedList bool) {
 }
 
 func main() {
-	useList := flag.Bool("l", false, "use a long listing format")
-	detailedList := flag.Bool("d", false, "use a (detailed) long listing format")
+	const listUsage = "use a long listing format"
+	var useList bool
+	flag.BoolVar(&useList, "list", false, listUsage)
+	flag.BoolVar(&useList, "l", false, listUsage+" (shorthand)")
+
+	const detailedUsage = "use a (detailed) long listing format"
+	var detailedList bool
+	flag.BoolVar(&detailedList, "detailed-list", false, detailedUsage)
+	flag.BoolVar(&detailedList, "d", false, detailedUsage+" (shorthand)")
 
 	flag.Parse()
-	returnPath(*useList, *detailedList)
+	returnPath(useList, detailedList)
 }
