@@ -26,7 +26,7 @@ func getSearchSources() []string {
 }
 
 func appendSource(element string) string {
-	element = element + " set by: "
+	elementSetBy := element + " set by: "
 	for _, source := range getSearchSources() {
 		b, err := ioutil.ReadFile(source)
 		if err != nil {
@@ -35,10 +35,10 @@ func appendSource(element string) string {
 		}
 
 		if strings.Contains(string(b), element) {
-			return element + source
+			return elementSetBy + source
 		}
 	}
-	return element + "unknown"
+	return elementSetBy + "unknown"
 }
 
 func returnPath(shouldList, detailedList bool) {
