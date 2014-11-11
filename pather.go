@@ -7,8 +7,8 @@ import (
 	"flag"
 )
 
-func returnPath(shouldList bool) {
-	if !shouldList {
+func returnPath(shouldList, detailedList bool) {
+	if !(shouldList || detailedList) {
 		fmt.Println(os.Getenv("PATH"))
 		return
 	}
@@ -21,7 +21,8 @@ func returnPath(shouldList bool) {
 
 func main() {
 	useList := flag.Bool("l", false, "use a long listing format")
+	detailedList := flag.Bool("d", false, "use a (detailed) long listing format")
 
 	flag.Parse()
-	returnPath(*useList)
+	returnPath(*useList, *detailedList)
 }
