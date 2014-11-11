@@ -26,17 +26,19 @@ func getSearchSources() []string {
 }
 
 func appendSource(element string) string {
+	element = element + " set by: "
 	for _, source := range getSearchSources() {
 		b, err := ioutil.ReadFile(source)
 		if err != nil {
-			panic(err)
+			// Allow execution to continue as some files are optional.
+			//panic(err)
 		}
 
 		if strings.Contains(string(b), element) {
-			return element + " set by: " + source
+			return element + source
 		}
 	}
-	return element
+	return element + "unknown"
 }
 
 func returnPath(shouldList, detailedList bool) {
