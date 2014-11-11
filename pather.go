@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
@@ -36,10 +37,10 @@ func appendSource(element string) string {
 		defer f.Close()
 
 		scanner := bufio.NewScanner(f)
-		for scanner.Scan() {
+		for i := 1; scanner.Scan(); i++ {
 			if strings.Contains(scanner.Text(), "PATH=") {
 				if strings.Contains(scanner.Text(), element) {
-					return elementSetBy + source
+					return elementSetBy + source + " (line " + strconv.Itoa(i) + ")"
 				}
 			}
 		}
