@@ -2,8 +2,8 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
+	"github.com/ogier/pflag"
 	"os"
 	"runtime"
 	"strconv"
@@ -66,15 +66,11 @@ func returnPath(shouldList, detailedList bool) {
 
 func main() {
 	const listUsage = "use a long listing format"
-	var useList bool
-	flag.BoolVar(&useList, "list", false, listUsage)
-	flag.BoolVar(&useList, "l", false, listUsage+" (shorthand)")
+	useList := pflag.BoolP("list", "l", false, listUsage)
 
 	const detailedUsage = "use a (detailed) long listing format"
-	var detailedList bool
-	flag.BoolVar(&detailedList, "detailed-list", false, detailedUsage)
-	flag.BoolVar(&detailedList, "d", false, detailedUsage+" (shorthand)")
+	detailedList := pflag.BoolP("detailed-list", "d", false, detailedUsage)
 
-	flag.Parse()
-	returnPath(useList, detailedList)
+	pflag.Parse()
+	returnPath(*useList, *detailedList)
 }
