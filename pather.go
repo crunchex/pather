@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func getSearchSources() []string {
@@ -28,7 +27,6 @@ func getSearchSources() []string {
 }
 
 func appendSource(element string, c chan string) {
-	fmt.Println("hello")
 	elementSetBy := element + " set by: "
 	for _, source := range getSearchSources() {
 		f, err := os.Open(source)
@@ -52,26 +50,23 @@ func appendSource(element string, c chan string) {
 	return
 }
 
-func receiveAppendedPath(p string, c chan string) {
-	fmt.Println("hi")
-}
-
 func returnPathList(detailedList bool) []string {
 	pathList := strings.Split(os.Getenv("PATH"), ":")
-
 	if !detailedList {
 		return pathList
 	}
 
-	done
-	for _, p := range pathList {
-		c := make(chan string, 1)
-		go appendSource(p, c)
-		go receiveAppendedPath(p, c)
+	pathChan := make(chan string, len(pathList))
+	for _, path := range pathList {
+		go appendSource(path, pathChan)
 	}
 
-	time.Sleep(1 * 1e9)
-	return pathList
+	var appendedPathList []string
+	for i := 0; i < len(pathList); i++ {
+		appendedPathList = append(appendedPathList, <-pathChan)
+	}
+
+	return appendedPathList
 }
 
 func main() {
