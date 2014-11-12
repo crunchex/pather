@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/kr/fs"
 	"github.com/ogier/pflag"
 	"os"
 	"runtime"
@@ -11,13 +12,29 @@ import (
 )
 
 func getSearchSources() []string {
+	home := os.Getenv("HOME")
+
 	// OS X
 	if runtime.GOOS == "darwin" {
-		return []string{"/etc/paths"}
+		var sources []string
+
+		sources = append(sources, home+"/.bash_profile")
+
+		walker := fs.Walk("/etc/paths.d")
+		for walker.Step() {
+			if err := walker.Err(); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				continue
+			}
+			sources = append(sources, walker.Path())
+		}
+
+		sources = append(sources, "/etc/paths")
+
+		return sources
 	}
 
 	// Ubuntu
-	home := os.Getenv("HOME")
 	bashrc := home + "/.bashrc"
 	bashprofile := home + "/.bash_profile"
 	profile := home + "/.profile"
