@@ -26,8 +26,8 @@ func getSearchSources() []string {
 	return []string{bashrc, bashprofile, profile, env}
 }
 
-func appendSource(element string, c chan string) {
-	elementSetBy := element + " set by: "
+func appendSource(path string, pathChan chan string) {
+	pathSetBy := path + " set by: "
 	for _, source := range getSearchSources() {
 		f, err := os.Open(source)
 		if err != nil {
@@ -39,14 +39,16 @@ func appendSource(element string, c chan string) {
 		scanner := bufio.NewScanner(f)
 		for i := 1; scanner.Scan(); i++ {
 			if strings.Contains(scanner.Text(), "PATH=") {
-				if strings.Contains(scanner.Text(), element) {
-					c <- elementSetBy + source + " (line " + strconv.Itoa(i) + ")"
+				if strings.Contains(scanner.Text(), path) {
+					p := pathSetBy + source + " (line " + strconv.Itoa(i) + ")"
+					pathChan <- p
 					return
 				}
 			}
 		}
 	}
-	c <- elementSetBy + "unknown"
+
+	pathChan <- pathSetBy + "unknown"
 	return
 }
 
