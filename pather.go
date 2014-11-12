@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func getSearchSources() []string {
@@ -27,6 +28,7 @@ func getSearchSources() []string {
 }
 
 func appendSource(element string, c chan string) {
+	fmt.Println("hello")
 	elementSetBy := element + " set by: "
 	for _, source := range getSearchSources() {
 		f, err := os.Open(source)
@@ -50,22 +52,26 @@ func appendSource(element string, c chan string) {
 	return
 }
 
-func returnPath(shouldList, detailedList bool) {
-	if !(shouldList || detailedList) {
-		fmt.Println(os.Getenv("PATH"))
-		return
-	}
+func receiveAppendedPath(p string, c chan string) {
+	fmt.Println("hi")
+}
 
+func returnPathList(detailedList bool) []string {
 	pathList := strings.Split(os.Getenv("PATH"), ":")
-	c := make(chan string)
-	for _, p := range pathList {
-		if detailedList {
-			go appendSource(p, c)
-			p = <-c
-		}
 
-		fmt.Println(p)
+	if !detailedList {
+		return pathList
 	}
+
+	done
+	for _, p := range pathList {
+		c := make(chan string, 1)
+		go appendSource(p, c)
+		go receiveAppendedPath(p, c)
+	}
+
+	time.Sleep(1 * 1e9)
+	return pathList
 }
 
 func main() {
@@ -76,5 +82,13 @@ func main() {
 	detailedList := pflag.BoolP("detailed-list", "d", false, detailedUsage)
 
 	pflag.Parse()
-	returnPath(*useList, *detailedList)
+
+	if !(*useList || *detailedList) {
+		fmt.Println(os.Getenv("PATH"))
+		return
+	}
+
+	for _, p := range returnPathList(*detailedList) {
+		fmt.Println(p)
+	}
 }
