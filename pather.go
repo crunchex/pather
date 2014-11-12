@@ -26,8 +26,8 @@ func getSearchSources() []string {
 	return []string{bashrc, bashprofile, profile, env}
 }
 
-func appendSource(element string) string {
-	elementSetBy := element + " set by: "
+func appendSource(path string, pathChan chan string) {
+	pathSetBy := path + " set by: "
 	for _, source := range getSearchSources() {
 		f, err := os.Open(source)
 		if err != nil {
@@ -39,29 +39,36 @@ func appendSource(element string) string {
 		scanner := bufio.NewScanner(f)
 		for i := 1; scanner.Scan(); i++ {
 			if strings.Contains(scanner.Text(), "PATH=") {
-				if strings.Contains(scanner.Text(), element) {
-					return elementSetBy + source + " (line " + strconv.Itoa(i) + ")"
+				if strings.Contains(scanner.Text(), path) {
+					p := pathSetBy + source + " (line " + strconv.Itoa(i) + ")"
+					pathChan <- p
+					return
 				}
 			}
 		}
 	}
-	return elementSetBy + "unknown"
+
+	pathChan <- pathSetBy + "unknown"
+	return
 }
 
-func returnPath(shouldList, detailedList bool) {
-	if !(shouldList || detailedList) {
-		fmt.Println(os.Getenv("PATH"))
-		return
-	}
-
+func returnPathList(detailedList bool) []string {
 	pathList := strings.Split(os.Getenv("PATH"), ":")
-	for _, p := range pathList {
-		if detailedList {
-			p = appendSource(p)
-		}
-
-		fmt.Println(p)
+	if !detailedList {
+		return pathList
 	}
+
+	pathChan := make(chan string, len(pathList))
+	for _, path := range pathList {
+		go appendSource(path, pathChan)
+	}
+
+	var appendedPathList []string
+	for i := 0; i < len(pathList); i++ {
+		appendedPathList = append(appendedPathList, <-pathChan)
+	}
+
+	return appendedPathList
 }
 
 func main() {
@@ -72,5 +79,13 @@ func main() {
 	detailedList := pflag.BoolP("detailed-list", "d", false, detailedUsage)
 
 	pflag.Parse()
-	returnPath(*useList, *detailedList)
+
+	if !(*useList || *detailedList) {
+		fmt.Println(os.Getenv("PATH"))
+		return
+	}
+
+	for _, p := range returnPathList(*detailedList) {
+		fmt.Println(p)
+	}
 }
