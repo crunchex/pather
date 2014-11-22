@@ -18,7 +18,7 @@ func getSearchSources() []string {
 	if runtime.GOOS == "darwin" {
 		var sources []string
 
-		sources = append(sources, home+"/.bash_profile")
+		sources = append(sources, "/etc/paths")
 
 		walker := fs.Walk("/etc/paths.d")
 		for walker.Step() {
@@ -26,10 +26,13 @@ func getSearchSources() []string {
 				fmt.Fprintln(os.Stderr, err)
 				continue
 			}
-			sources = append(sources, walker.Path())
+
+			if walker.Path() != "/etc/paths.d" {
+				sources = append(sources, walker.Path())
+			}
 		}
 
-		sources = append(sources, "/etc/paths")
+		sources = append(sources, home+"/.bash_profile")
 
 		return sources
 	}
@@ -45,6 +48,7 @@ func getSearchSources() []string {
 
 func appendSource(path string, pathChan chan string) {
 	pathSetBy := path + " set by: "
+
 	for _, source := range getSearchSources() {
 		f, err := os.Open(source)
 		if err != nil {
@@ -55,11 +59,19 @@ func appendSource(path string, pathChan chan string) {
 
 		scanner := bufio.NewScanner(f)
 		for i := 1; scanner.Scan(); i++ {
-			if strings.Contains(scanner.Text(), "PATH=") {
+			if runtime.GOOS == "darwin" {
 				if strings.Contains(scanner.Text(), path) {
 					p := pathSetBy + source + " (line " + strconv.Itoa(i) + ")"
 					pathChan <- p
 					return
+				}
+			} else {
+				if strings.Contains(scanner.Text(), "PATH=") {
+					if strings.Contains(scanner.Text(), path) {
+						p := pathSetBy + source + " (line " + strconv.Itoa(i) + ")"
+						pathChan <- p
+						return
+					}
 				}
 			}
 		}
