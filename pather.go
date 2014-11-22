@@ -1,3 +1,4 @@
+// pather is a command-line tool to make working with Unix paths easier.
 package main
 
 import (
@@ -11,6 +12,8 @@ import (
 	"strings"
 )
 
+// GetSearchSources will return a list of search locations that typically set
+// path elements. The list depends on the user's OS.
 func getSearchSources() []string {
 	home := os.Getenv("HOME")
 
@@ -27,6 +30,7 @@ func getSearchSources() []string {
 				continue
 			}
 
+			// We want to exclude the top-level paths.d
 			if walker.Path() != "/etc/paths.d" {
 				sources = append(sources, walker.Path())
 			}
@@ -46,6 +50,9 @@ func getSearchSources() []string {
 	return []string{bashrc, bashprofile, profile, env}
 }
 
+// appendSource will search through a list of possible locations, provided by
+// getSearchSources(), where the path may have been set and append that data to
+// the path string. If it can't be located, "unknown" will be returned.
 func appendSource(path string, pathChan chan string) {
 	pathSetBy := path + " set by: "
 
@@ -81,6 +88,8 @@ func appendSource(path string, pathChan chan string) {
 	return
 }
 
+// returnPathList returns a slice of path strings with or without extra details.
+// The strings should be printed to stdout.
 func returnPathList(detailedList bool) []string {
 	pathList := strings.Split(os.Getenv("PATH"), ":")
 	if !detailedList {
