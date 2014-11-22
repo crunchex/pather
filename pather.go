@@ -16,12 +16,20 @@ import (
 // path elements. The list depends on the user's OS.
 func getSearchSources() []string {
 	home := os.Getenv("HOME")
+	var searchSources []string
 
-	// OS X
-	if runtime.GOOS == "darwin" {
-		var sources []string
+	switch runtime.GOOS {
+	case "linux":
+		// Ubuntu
+		bashrc := home + "/.bashrc"
+		bashprofile := home + "/.bash_profile"
+		profile := home + "/.profile"
+		env := "/etc/environment"
 
-		sources = append(sources, "/etc/paths")
+		searchSources = []string{bashrc, bashprofile, profile, env}
+	case "darwin":
+		// OS X
+		searchSources = append(searchSources, "/etc/paths")
 
 		walker := fs.Walk("/etc/paths.d")
 		for walker.Step() {
@@ -32,22 +40,14 @@ func getSearchSources() []string {
 
 			// We want to exclude the top-level paths.d
 			if walker.Path() != "/etc/paths.d" {
-				sources = append(sources, walker.Path())
+				searchSources = append(searchSources, walker.Path())
 			}
 		}
 
-		sources = append(sources, home+"/.bash_profile")
-
-		return sources
+		searchSources = append(searchSources, home+"/.bash_profile")
 	}
 
-	// Ubuntu
-	bashrc := home + "/.bashrc"
-	bashprofile := home + "/.bash_profile"
-	profile := home + "/.profile"
-	env := "/etc/environment"
-
-	return []string{bashrc, bashprofile, profile, env}
+	return searchSources
 }
 
 // appendSource will search through a list of possible locations, provided by
@@ -121,6 +121,10 @@ func main() {
 	if !(*useList || *detailedList) {
 		fmt.Println(os.Getenv("PATH"))
 		return
+	}
+
+	if !(runtime.GOOS == "darwin" || runtime.GOOS == "linux") {
+		fmt.Println("Sorry, detailed list only supports Linux and OS X for now.")
 	}
 
 	for _, p := range returnPathList(*detailedList) {
