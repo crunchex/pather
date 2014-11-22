@@ -1,3 +1,4 @@
+// pather is a command-line tool to make working with Unix paths easier.
 package main
 
 import (
@@ -11,14 +12,24 @@ import (
 	"strings"
 )
 
+// GetSearchSources will return a list of search locations that typically set
+// path elements. The list depends on the user's OS.
 func getSearchSources() []string {
 	home := os.Getenv("HOME")
+	var searchSources []string
 
-	// OS X
-	if runtime.GOOS == "darwin" {
-		var sources []string
+	switch runtime.GOOS {
+	case "linux":
+		// Ubuntu
+		bashrc := home + "/.bashrc"
+		bashprofile := home + "/.bash_profile"
+		profile := home + "/.profile"
+		env := "/etc/environment"
 
-		sources = append(sources, "/etc/paths")
+		searchSources = []string{bashrc, bashprofile, profile, env}
+	case "darwin":
+		// OS X
+		searchSources = append(searchSources, "/etc/paths")
 
 		walker := fs.Walk("/etc/paths.d")
 		for walker.Step() {
@@ -27,25 +38,21 @@ func getSearchSources() []string {
 				continue
 			}
 
+			// We want to exclude the top-level paths.d
 			if walker.Path() != "/etc/paths.d" {
-				sources = append(sources, walker.Path())
+				searchSources = append(searchSources, walker.Path())
 			}
 		}
 
-		sources = append(sources, home+"/.bash_profile")
-
-		return sources
+		searchSources = append(searchSources, home+"/.bash_profile")
 	}
 
-	// Ubuntu
-	bashrc := home + "/.bashrc"
-	bashprofile := home + "/.bash_profile"
-	profile := home + "/.profile"
-	env := "/etc/environment"
-
-	return []string{bashrc, bashprofile, profile, env}
+	return searchSources
 }
 
+// appendSource will search through a list of possible locations, provided by
+// getSearchSources(), where the path may have been set and append that data to
+// the path string. If it can't be located, "unknown" will be returned.
 func appendSource(path string, pathChan chan string) {
 	pathSetBy := path + " set by: "
 
@@ -81,6 +88,8 @@ func appendSource(path string, pathChan chan string) {
 	return
 }
 
+// returnPathList returns a slice of path strings with or without extra details.
+// The strings should be printed to stdout.
 func returnPathList(detailedList bool) []string {
 	pathList := strings.Split(os.Getenv("PATH"), ":")
 	if !detailedList {
@@ -112,6 +121,10 @@ func main() {
 	if !(*useList || *detailedList) {
 		fmt.Println(os.Getenv("PATH"))
 		return
+	}
+
+	if !(runtime.GOOS == "darwin" || runtime.GOOS == "linux") {
+		fmt.Println("Sorry, detailed list only supports Linux and OS X for now.")
 	}
 
 	for _, p := range returnPathList(*detailedList) {
