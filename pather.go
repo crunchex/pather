@@ -45,21 +45,21 @@ func (t Command) String() string {
 // segments in Ubuntu Linux.
 func getLinuxSearchSources(home string) []string {
 	// TODO: add official support for other distributions.
-	bashrc := home + "/.bashrc"
-	bashprofile := home + "/.bash_profile"
-	profile := home + "/.profile"
-	env := "/etc/environment"
-
-	return []string{bashrc, bashprofile, profile, env}
+	return []string{
+		home + "/.bashrc",
+		home + "/.bash_profile",
+		home + "/.profile",
+		"/etc/environment",
+	}
 }
 
 // getDarwinSearchSources will return a list of known locations for PATH
 // segments in OS X.
 func getDarwinSearchSources(home string) []string {
-	bashprofile := home + "/.bash_profile"
-	paths := "/etc/paths"
-
-	searchSources := []string{bashprofile, paths}
+	searchSources := []string{
+		home + "/.bash_profile",
+		"/etc/paths",
+	}
 
 	// Lastly, grab all the files under paths.d.
 	walker := fs.Walk("/etc/paths.d")
