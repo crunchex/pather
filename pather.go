@@ -133,6 +133,12 @@ func returnPathList(detailedList bool) []string {
 }
 
 func userInterface() {
+	// Don't do anything on unsupported platforms (that we haven't tested yet).
+	if !(runtime.GOOS == "darwin" || runtime.GOOS == "linux") {
+		fmt.Println("Sorry, pather only supports Linux and OS X for now.")
+		return
+	}
+
 	const listUsage = "use a long listing format"
 	useList := pflag.BoolP("list", "l", false, listUsage)
 
@@ -144,10 +150,6 @@ func userInterface() {
 	if !(*useList || *detailedList) {
 		fmt.Println(os.Getenv("PATH"))
 		return
-	}
-
-	if !(runtime.GOOS == "darwin" || runtime.GOOS == "linux") {
-		fmt.Println("Sorry, detailed list only supports Linux and OS X for now.")
 	}
 
 	for _, p := range returnPathList(*detailedList) {
