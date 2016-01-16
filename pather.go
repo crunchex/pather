@@ -132,7 +132,7 @@ func returnPathList(detailedList bool) []string {
 	return appendedPathList
 }
 
-func main() {
+func userInterface() {
 	const listUsage = "use a long listing format"
 	useList := pflag.BoolP("list", "l", false, listUsage)
 
@@ -153,4 +153,8 @@ func main() {
 	for _, p := range returnPathList(*detailedList) {
 		fmt.Println(p)
 	}
+}
+
+func main() {
+	userInterface()
 }
