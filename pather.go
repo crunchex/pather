@@ -12,7 +12,44 @@ import (
 	"strings"
 )
 
-// GetSearchSources will return a list of search locations that typically set
+// getLinuxSearchSources will return a list of known locations for PATH
+// segments in Ubuntu Linux.
+func getLinuxSearchSources(home string) []string {
+	// TODO: add official support for other distributions.
+	bashrc := home + "/.bashrc"
+	bashprofile := home + "/.bash_profile"
+	profile := home + "/.profile"
+	env := "/etc/environment"
+
+	return []string{bashrc, bashprofile, profile, env}
+}
+
+// getDarwinSearchSources will return a list of known locations for PATH
+// segments in OS X.
+func getDarwinSearchSources(home string) []string {
+	bashprofile := home + "/.bash_profile"
+	paths := "/etc/paths"
+
+	searchSources := []string{bashprofile, paths}
+
+	// Lastly, grab all the files under paths.d.
+	walker := fs.Walk("/etc/paths.d")
+	for walker.Step() {
+		if err := walker.Err(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			continue
+		}
+
+		// We want to exclude the top-level directory.
+		if walker.Path() != "/etc/paths.d" {
+			searchSources = append(searchSources, walker.Path())
+		}
+	}
+
+	return searchSources
+}
+
+// getSearchSources will return a list of search locations that typically set
 // path elements. The list depends on the user's OS.
 func getSearchSources() []string {
 	home := os.Getenv("HOME")
@@ -21,30 +58,10 @@ func getSearchSources() []string {
 	switch runtime.GOOS {
 	case "linux":
 		// Ubuntu
-		bashrc := home + "/.bashrc"
-		bashprofile := home + "/.bash_profile"
-		profile := home + "/.profile"
-		env := "/etc/environment"
-
-		searchSources = []string{bashrc, bashprofile, profile, env}
+		searchSources = getLinuxSearchSources(home)
 	case "darwin":
 		// OS X
-		searchSources = append(searchSources, "/etc/paths")
-
-		walker := fs.Walk("/etc/paths.d")
-		for walker.Step() {
-			if err := walker.Err(); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				continue
-			}
-
-			// We want to exclude the top-level paths.d
-			if walker.Path() != "/etc/paths.d" {
-				searchSources = append(searchSources, walker.Path())
-			}
-		}
-
-		searchSources = append(searchSources, home+"/.bash_profile")
+		searchSources = getDarwinSearchSources(home)
 	}
 
 	return searchSources
