@@ -18,6 +18,29 @@ import (
 	"strings"
 )
 
+type Command int
+
+// TODO: figure out why iota does not work here.
+const (
+	showPath         Command = 0
+	showList         Command = 1
+	showDetailedList Command = 2
+)
+
+func (t Command) String() string {
+	var s string
+	switch {
+	case t&showPath == showPath:
+		s = "showPath"
+	case t&showList == showList:
+		s = "showList"
+	case t&showDetailedList == showDetailedList:
+		s = "showDetailedList"
+	}
+
+	return s
+}
+
 // getLinuxSearchSources will return a list of known locations for PATH
 // segments in Ubuntu Linux.
 func getLinuxSearchSources(home string) []string {
@@ -89,35 +112,35 @@ func appendSource(path string, pathChan chan string) {
 
 		scanner := bufio.NewScanner(f)
 		for i := 1; scanner.Scan(); i++ {
-			if runtime.GOOS == "darwin" {
-				if strings.Contains(scanner.Text(), path) {
-					p := pathSetBy + source + " (line " + strconv.Itoa(i) + ")"
-					pathChan <- p
-					return
+			if runtime.GOOS != "darwin" {
+				if !strings.Contains(scanner.Text(), "PATH=") {
+					continue
 				}
-			} else {
-				if strings.Contains(scanner.Text(), "PATH=") {
-					if strings.Contains(scanner.Text(), path) {
-						p := pathSetBy + source + " (line " + strconv.Itoa(i) + ")"
-						pathChan <- p
-						return
-					}
-				}
+			}
+
+			if strings.Contains(scanner.Text(), path) {
+				p := pathSetBy + source + " (line " + strconv.Itoa(i) + ")"
+				pathChan <- p
+				return
 			}
 		}
 	}
 
+	// Path wasn't found in any of the known/usual sources.
 	pathChan <- pathSetBy + "unknown"
 	return
 }
 
-// returnPathList returns a slice of path strings with or without extra details.
+// returnPathList returns a slice of path segments that are colon-separated.
 // The strings should be printed to stdout.
-func returnPathList(detailedList bool) []string {
+func returnPathList() []string {
+	return strings.Split(os.Getenv("PATH"), ":")
+}
+
+// returnDetailedPathList returns a slice of path segments with extra details.
+// The strings should be printed to stdout.
+func returnDetailedPathList() []string {
 	pathList := strings.Split(os.Getenv("PATH"), ":")
-	if !detailedList {
-		return pathList
-	}
 
 	pathChan := make(chan string, len(pathList))
 	for _, path := range pathList {
@@ -132,29 +155,49 @@ func returnPathList(detailedList bool) []string {
 	return appendedPathList
 }
 
+func printPathList(pathList []string) {
+	for _, p := range pathList {
+		fmt.Println(p)
+	}
+}
+
+func executeCommand(cmd Command) {
+	switch cmd {
+	case showPath:
+		// If no special options, we just print the usual PATH env var.
+		fmt.Println(os.Getenv("PATH"))
+	case showList:
+		printPathList(returnPathList())
+	case showDetailedList:
+		printPathList(returnDetailedPathList())
+	}
+}
+
 func userInterface() {
 	// Don't do anything on unsupported platforms (that we haven't tested yet).
 	if !(runtime.GOOS == "darwin" || runtime.GOOS == "linux") {
 		fmt.Println("Sorry, pather only supports Linux and OS X for now.")
-		return
 	}
 
 	const listUsage = "use a long listing format"
 	useList := pflag.BoolP("list", "l", false, listUsage)
 
 	const detailedUsage = "use a (detailed) long listing format"
-	detailedList := pflag.BoolP("detailed-list", "d", false, detailedUsage)
+	useDetailedList := pflag.BoolP("detailed-list", "d", false, detailedUsage)
 
 	pflag.Parse()
 
-	if !(*useList || *detailedList) {
-		fmt.Println(os.Getenv("PATH"))
-		return
+	cmd := showPath
+
+	if *useList {
+		cmd = showList
 	}
 
-	for _, p := range returnPathList(*detailedList) {
-		fmt.Println(p)
+	if *useDetailedList {
+		cmd = showDetailedList
 	}
+
+	executeCommand(cmd)
 }
 
 func main() {
