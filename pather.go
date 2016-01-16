@@ -173,7 +173,7 @@ func executeCommand(cmd Command) {
 	}
 }
 
-func userInterface() {
+func userInterface() Command {
 	// Don't do anything on unsupported platforms (that we haven't tested yet).
 	if !(runtime.GOOS == "darwin" || runtime.GOOS == "linux") {
 		fmt.Println("Sorry, pather only supports Linux and OS X for now.")
@@ -197,9 +197,10 @@ func userInterface() {
 		cmd = showDetailedList
 	}
 
-	executeCommand(cmd)
+	return cmd
 }
 
 func main() {
-	userInterface()
+	cmd := userInterface()
+	executeCommand(cmd)
 }
