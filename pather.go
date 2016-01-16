@@ -1,4 +1,10 @@
-// pather is a command-line tool to make working with Unix paths easier.
+/*
+pather is a command-line tool to make working with Unix paths easier.
+
+Usage of pather:
+  -d, --detailed-list=false: use a (detailed) long listing format
+  -l, --list=false: use a long listing format
+*/
 package main
 
 import (
